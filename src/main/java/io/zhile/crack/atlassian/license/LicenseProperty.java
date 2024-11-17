@@ -130,6 +130,12 @@ abstract public class LicenseProperty {
         }
     }
 
+    public void setCustomExpiryDate(long milliseconds) {
+        Date expiryDate = new Date(milliseconds);
+        setLicenseExpiryDate(expiryDate);
+        setMaintenanceExpiryDate(expiryDate);
+    }
+
     protected String productProperty(String property) {
         return getProductName() + "." + property;
     }

@@ -65,6 +65,7 @@ public class Usage {
         OPTIONS.addOption("n", "name", true, "License name[default: <license email>]");
         OPTIONS.addOption("d", "datacenter", false, "Data center license[default: false]");
         OPTIONS.addOption("h", "help", false, "Print help message");
+        OPTIONS.addOption("e", "expiry", true, "Custom license expiry in milliseconds since epoch");
 
         CommandLine command;
         try {
@@ -154,6 +155,15 @@ public class Usage {
                 property = new ThirdPlugin(contactName, contactEMail, serverID, organisation, dataCenter);
                 ((ThirdPlugin) property).setProductName(product);
                 break;
+        }
+
+        if (commandLine.hasOption("e")) {
+            try {
+                long expiryMillis = Long.parseLong(commandLine.getOptionValue("e"));
+                property.setCustomExpiryDate(expiryMillis);
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid expiry timestamp");
+            }
         }
 
         try {
