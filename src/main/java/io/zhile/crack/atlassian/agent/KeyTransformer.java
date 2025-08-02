@@ -21,14 +21,18 @@ public class KeyTransformer implements ClassFileTransformer {
     private static final String LICENSE_DECODER_CLASS = "com.atlassian.extras.decoder.v2.Version2LicenseDecoder";
 
     @Override
-    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
+                            ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
         if (className == null) {
             return classfileBuffer;
         }
 
+        // 添加调试日志
         if (className.equals(CN_KEY_SPEC)) {
+            System.out.println("============================== Transforming KeySpec class ==============================");
             return handleKeySpec();
         } else if(className.equals(LICENSE_DECODER_PATH)) {
+            System.out.println("============================== Transforming LicenseDecoder class ==============================");
             return handleLicenseDecoder();
         }
 
@@ -37,6 +41,7 @@ public class KeyTransformer implements ClassFileTransformer {
 
     private byte[] handleKeySpec() throws IllegalClassFormatException {
         try {
+            System.out.println("============================== Starting handleKeySpec ==============================");
             ClassPool cp = ClassPool.getDefault();
             cp.importPackage("java.util.Arrays");
             cp.importPackage("javax.xml.bind.DatatypeConverter");
@@ -51,10 +56,14 @@ public class KeyTransformer implements ClassFileTransformer {
             cc.addField(cfOld, "DatatypeConverter.parseBase64Binary(\"MIIBuDCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaFpEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6OuqC+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6ASQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoDgYUAAoGBAIvfweZvmGo5otwawI3no7Udanxal3hX2haw962KL/nHQrnC4FG2PvUFf34OecSK1KtHDPQoSQ+DHrfdf6vKUJphw0Kn3gXm4LS8VK/LrY7on/wh2iUobS2XlhuIqEc5mLAUu9Hd+1qxsQkQ50d0lzKrnDqPsM0WA9htkdJJw2nS\");");
             cc.addField(cfNew, "DatatypeConverter.parseBase64Binary(\"MIIBuDCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaFpEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6OuqC+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6ASQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoDgYUAAoGBAO0DidNibJHhtgxAnM9NszURYU25CVLAlwFdOWhiUkjrjOY459ObRZDVd35hQmN/cCLkDox7y2InJE6PDWfbx9BsgPmPvH75yKgPs3B8pClQVkgIpJp08R59hoZabYuvm7mxCyDGTl2lbrOi0a3j4vM5OoCWKQjIEZ28OpjTyCr3\");");
             CtConstructor cm = cc.getConstructor("([B)V");
+            System.out.println("============================== Adding code to constructor ==============================");
             cm.insertBeforeBody("if(Arrays.equals($1,__h_ok)){$1=__h_nk;System.out.println(\"============================== agent working ==============================\");}");
+            System.out.println("============================== KeySpec transformation completed ==============================");
 
             return cc.toBytecode();
         } catch (Exception e) {
+            System.err.println("============================== Error in handleKeySpec ==============================");
+            e.printStackTrace();
             throw new IllegalClassFormatException(e.getMessage());
         }
     }
@@ -70,7 +79,7 @@ public class KeyTransformer implements ClassFileTransformer {
         try {
             // 我不知道怎么从 com.atlassian.bitbucket.internal.launcher.BitbucketServerLauncher 读取这个路径，所以我直接 HARD CODE
             // Forgive me pls...
-            File libs = new File("/opt/atlassian/bitbucket/7.21.0/app/WEB-INF/lib");
+            File libs = new File("/home/atlassian/apps/lts-atlassian-jira-software-10.3.5-standalone/atlassian-jira/WEB-INF/lib");
             ClassPool cp = ClassPool.getDefault();
 
             Arrays.stream(Objects.requireNonNull(libs.listFiles())).map(File::getAbsolutePath).forEach((it) -> {
