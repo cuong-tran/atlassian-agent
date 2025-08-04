@@ -53,6 +53,7 @@ public class KeyTransformer implements ClassFileTransformer {
 
     private byte[] handleLicenseDecoder() throws IllegalClassFormatException {
         try {
+            // 这里修改为 ` <你的Jira安装目录>/atlassian-jira/WEB-INF/lib  `
             File libs = new File("/home/atlassian/apps/atlassian-jira-software-9.12.25-standalone/atlassian-jira/WEB-INF/lib");
             ClassPool cp = ClassPool.getDefault();
             Arrays.stream((File[])Objects.requireNonNull(libs.listFiles())).map(File::getAbsolutePath).forEach((it) -> {
