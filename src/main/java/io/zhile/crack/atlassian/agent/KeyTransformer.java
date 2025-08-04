@@ -1,6 +1,9 @@
-package io.zhile.crack.atlassian.agent;
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by FernFlower decompiler)
+//
 
-import javassist.*;
+package io.zhile.crack.atlassian.agent;
 
 import java.io.File;
 import java.lang.instrument.ClassFileTransformer;
@@ -8,88 +11,58 @@ import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
 import java.util.Arrays;
 import java.util.Objects;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtMethod;
 
-/**
- * @author pengzhile
- * @link https://zhile.io
- * @version 1.0
- */
 public class KeyTransformer implements ClassFileTransformer {
-    private static final String CN_KEY_SPEC = "java/security/spec/EncodedKeySpec";
-
+    private static final String CN_KEY_MANAGER = "com/atlassian/extras/keymanager/KeyManager";
     private static final String LICENSE_DECODER_PATH = "com/atlassian/extras/decoder/v2/Version2LicenseDecoder";
     private static final String LICENSE_DECODER_CLASS = "com.atlassian.extras.decoder.v2.Version2LicenseDecoder";
 
-    @Override
-    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
-                            ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
         if (className == null) {
             return classfileBuffer;
-        }
-
-        // 添加调试日志
-        if (className.equals(CN_KEY_SPEC)) {
-            System.out.println("============================== Transforming KeySpec class ==============================");
-            return handleKeySpec();
-        } else if(className.equals(LICENSE_DECODER_PATH)) {
+        } else if (className.equals("com/atlassian/extras/keymanager/KeyManager")) {
+            System.out.println("============================== Transforming KeyManager class ==============================");
+            return this.handleKeyManager();
+        } else if (className.equals("com/atlassian/extras/decoder/v2/Version2LicenseDecoder")) {
             System.out.println("============================== Transforming LicenseDecoder class ==============================");
-            return handleLicenseDecoder();
+            return this.handleLicenseDecoder();
+        } else {
+            return classfileBuffer;
         }
-
-        return classfileBuffer;
     }
 
-    private byte[] handleKeySpec() throws IllegalClassFormatException {
+    private byte[] handleKeyManager() throws IllegalClassFormatException {
         try {
-            System.out.println("============================== Starting handleKeySpec ==============================");
+            System.out.println("============================== Starting handleKeyManager ==============================");
             ClassPool cp = ClassPool.getDefault();
-            cp.importPackage("java.util.Arrays");
-            cp.importPackage("javax.xml.bind.DatatypeConverter");
-
-            int mod = Modifier.PRIVATE | Modifier.STATIC | Modifier.FINAL;
-            CtClass cc = cp.get(CN_KEY_SPEC.replace('/', '.'));
-            CtClass cb = cp.get("byte[]");
-            CtField cfOld = new CtField(cb, "__h_ok", cc);
-            CtField cfNew = new CtField(cb, "__h_nk", cc);
-            cfOld.setModifiers(mod);
-            cfNew.setModifiers(mod);
-            cc.addField(cfOld, "DatatypeConverter.parseBase64Binary(\"MIIBuDCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaFpEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6OuqC+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6ASQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoDgYUAAoGBAIvfweZvmGo5otwawI3no7Udanxal3hX2haw962KL/nHQrnC4FG2PvUFf34OecSK1KtHDPQoSQ+DHrfdf6vKUJphw0Kn3gXm4LS8VK/LrY7on/wh2iUobS2XlhuIqEc5mLAUu9Hd+1qxsQkQ50d0lzKrnDqPsM0WA9htkdJJw2nS\");");
-            cc.addField(cfNew, "DatatypeConverter.parseBase64Binary(\"MIIBuDCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaFpEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6OuqC+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6ASQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoDgYUAAoGBAO0DidNibJHhtgxAnM9NszURYU25CVLAlwFdOWhiUkjrjOY459ObRZDVd35hQmN/cCLkDox7y2InJE6PDWfbx9BsgPmPvH75yKgPs3B8pClQVkgIpJp08R59hoZabYuvm7mxCyDGTl2lbrOi0a3j4vM5OoCWKQjIEZ28OpjTyCr3\");");
-            CtConstructor cm = cc.getConstructor("([B)V");
-            System.out.println("============================== Adding code to constructor ==============================");
-            cm.insertBeforeBody("if(Arrays.equals($1,__h_ok)){$1=__h_nk;System.out.println(\"============================== agent working ==============================\");}");
-            System.out.println("============================== KeySpec transformation completed ==============================");
-
+            CtClass cc = cp.get("com/atlassian/extras/keymanager/KeyManager".replace('/', '.'));
+            CtMethod resetMethod = cc.getDeclaredMethod("reset");
+            String newMethodBody = "{\n    this.privateKeys.clear();\n    this.publicKeys.clear();\n    java.util.List keys = new java.util.ArrayList();\n\n    for(java.util.Iterator iter = this.env.entrySet().iterator(); iter.hasNext();) {\n        java.util.Map.Entry envVar = (java.util.Map.Entry) iter.next();\n        String envVarKey = (String)envVar.getKey();\n        if (envVarKey.startsWith(\"ATLAS_LICENSE_PRIVATE_KEY_\")) {\n            keys.add(new com.atlassian.extras.keymanager.Key((String)envVar.getValue(), extractVersion(envVarKey), com.atlassian.extras.keymanager.Key.Type.PRIVATE));\n        }\n\n        if (envVarKey.startsWith(\"ATLAS_LICENSE_PUBLIC_KEY_\")) {\n            keys.add(new com.atlassian.extras.keymanager.Key((String)envVar.getValue(), extractVersion(envVarKey), com.atlassian.extras.keymanager.Key.Type.PUBLIC));\n        }\n    }\n\n    for(java.util.Iterator it = keys.iterator(); it.hasNext();) {\n        com.atlassian.extras.keymanager.Key key = (com.atlassian.extras.keymanager.Key)it.next();\n        this.loadKey(key);\n    }\n\n    // 使用替换后的公钥\n    System.out.println(\"============================== agent working: replacing public keys ==============================\");\n    this.loadKey(new com.atlassian.extras.keymanager.Key(\"MIIBuDCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaFpEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6OuqC+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6ASQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoDgYUAAoGBAO0DidNibJHhtgxAnM9NszURYU25CVLAlwFdOWhiUkjrjOY459ObRZDVd35hQmN/cCLkDox7y2InJE6PDWfbx9BsgPmPvH75yKgPs3B8pClQVkgIpJp08R59hoZabYuvm7mxCyDGTl2lbrOi0a3j4vM5OoCWKQjIEZ28OpjTyCr3\", \"LICENSE_STRING_KEY_V2\", com.atlassian.extras.keymanager.Key.Type.PUBLIC));\n    this.loadKey(new com.atlassian.extras.keymanager.Key(\"MIIBtzCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaFpEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6OuqC+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6ASQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoDgYQAAoGALZHuJwQzgGnYm/X9BkMcewYQnWjMIGWHd9Yom5Qw7cVIdiZkqpiSzSKurO/WAHHLN31obg7NgGkitWUysECRE3zuJVbKGhx9xjVMnP6z5SwI89vB7Gn7UWxoCvT0JZgcMyQobXeVBtM9J3EgzkdDx/+Dck7uz/l1y+HDNdRzW00=\", \"1600708331\", com.atlassian.extras.keymanager.Key.Type.PUBLIC));\n}";
+            resetMethod.setBody(newMethodBody);
+            System.out.println("============================== KeyManager transformation completed ==============================");
             return cc.toBytecode();
         } catch (Exception e) {
-            System.err.println("============================== Error in handleKeySpec ==============================");
+            System.err.println("============================== Error in handleKeyManager ==============================");
             e.printStackTrace();
             throw new IllegalClassFormatException(e.getMessage());
         }
     }
 
-
-    /**
-     * 移除用于验证哈希的方法: <code>com.atlassian.extras.decoder.v2.Version2LicenseDecoder#verifyLicenseHash</code>
-     *
-     * @return 修改过的类的字节码
-     * @throws IllegalClassFormatException 当某些地方出问题了就会抛出这个异常
-     */
     private byte[] handleLicenseDecoder() throws IllegalClassFormatException {
         try {
-            // 我不知道怎么从 com.atlassian.bitbucket.internal.launcher.BitbucketServerLauncher 读取这个路径，所以我直接 HARD CODE
-            // Forgive me pls...
-            File libs = new File("/home/atlassian/apps/lts-atlassian-jira-software-10.3.5-standalone/atlassian-jira/WEB-INF/lib");
+            File libs = new File("/home/atlassian/apps/atlassian-jira-software-9.12.25-standalone/atlassian-jira/WEB-INF/lib");
             ClassPool cp = ClassPool.getDefault();
-
-            Arrays.stream(Objects.requireNonNull(libs.listFiles())).map(File::getAbsolutePath).forEach((it) -> {
+            Arrays.stream((File[])Objects.requireNonNull(libs.listFiles())).map(File::getAbsolutePath).forEach((it) -> {
                 try {
                     cp.insertClassPath(it);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-            });
 
+            });
             cp.importPackage("com.atlassian.extras.common.LicenseException");
             cp.importPackage("com.atlassian.extras.common.org.springframework.util.DefaultPropertiesPersister");
             cp.importPackage("com.atlassian.extras.decoder.api.AbstractLicenseDecoder");
@@ -116,16 +89,13 @@ public class KeyTransformer implements ClassFileTransformer {
             cp.importPackage("java.util.zip.Inflater");
             cp.importPackage("java.util.zip.InflaterInputStream");
             cp.importPackage("org.apache.commons.codec.binary.Base64");
-
-            CtClass target = cp.getCtClass(LICENSE_DECODER_CLASS);
+            CtClass target = cp.getCtClass("com.atlassian.extras.decoder.v2.Version2LicenseDecoder");
             CtMethod verifyLicenseHash = target.getDeclaredMethod("verifyLicenseHash");
             verifyLicenseHash.setBody("{System.out.println(\"atlassian-agent: skip hash check\");}");
-
             return target.toBytecode();
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalClassFormatException(e.getMessage());
         }
     }
-
 }
