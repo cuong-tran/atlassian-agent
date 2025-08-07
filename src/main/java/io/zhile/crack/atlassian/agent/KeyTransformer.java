@@ -28,6 +28,24 @@ public class KeyTransformer implements ClassFileTransformer {
     private static final String LICENSE_DECODER_PATH = "com/atlassian/extras/decoder/v2/Version2LicenseDecoder";
     private static final String LICENSE_DECODER_CLASS = "com.atlassian.extras.decoder.v2.Version2LicenseDecoder";
 
+    // Static initializer to trigger proactive license generation
+    static {
+        // Run proactive license generation in a separate thread to avoid blocking class loading
+        Thread proactiveLicenseThread = new Thread(() -> {
+            try {
+                // Wait a bit for the application to initialize
+                Thread.sleep(5000);
+                System.out.println("atlassian-agent: Attempting proactive license generation...");
+                AutoLicenseGenerator.generateLicense();
+            } catch (Exception e) {
+                System.out.println("atlassian-agent: Error in proactive license generation: " + e.getMessage());
+            }
+        });
+        proactiveLicenseThread.setDaemon(true);
+        proactiveLicenseThread.setName("atlassian-agent-proactive");
+        proactiveLicenseThread.start();
+    }
+
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
         if (className == null) {
@@ -124,8 +142,16 @@ public class KeyTransformer implements ClassFileTransformer {
 
             CtClass target = cp.getCtClass(LICENSE_DECODER_CLASS);
             CtMethod verifyLicenseHash = target.getDeclaredMethod("verifyLicenseHash");
-            verifyLicenseHash.setBody("{System.out.println(\"=============== agent: skip license hash check ===============\");}");
-
+            verifyLicenseHash.setBody("{" +
+                    "System.out.println(\"=============== agent: skip license hash check ===============\");" +
+                    "try {" +
+                    "    Class autoGenClass = Class.forName(\"io.zhile.crack.atlassian.agent.AutoLicenseGenerator\");" +
+                    "    java.lang.reflect.Method generateMethod = autoGenClass.getMethod(\"generateLicense\", new Class[0]);" +
+                    "    generateMethod.invoke(null, new Object[0]);" +
+                    "} catch (Exception e) {" +
+                    "    System.out.println(\"atlassian-agent: Error during automatic license generation: \" + e.getMessage());" +
+                    "}" +
+                    "}");
             CtMethod checkAndGetLicenseText = target.getDeclaredMethod("checkAndGetLicenseText");
             checkAndGetLicenseText.setBody("        try {\n" +
                     "            byte[] decodedBytes = org.apache.commons.codec.binary.Base64.decodeBase64($1.getBytes(StandardCharsets.UTF_8));\n" +
@@ -135,6 +161,13 @@ public class KeyTransformer implements ClassFileTransformer {
                     "            byte[] licenseText = new byte[textLength];\n" +
                     "            dIn.read(licenseText);\n" +
                     "            System.out.println(\"=============== agent working: skip verify the license. ===============\");\n" +
+                    "            try {\n" +
+                    "                Class autoGenClass = Class.forName(\"io.zhile.crack.atlassian.agent.AutoLicenseGenerator\");\n" +
+                    "                java.lang.reflect.Method generateMethod = autoGenClass.getMethod(\"generateLicense\", new Class[0]);\n" +
+                    "                generateMethod.invoke(null, new Object[0]);\n" +
+                    "            } catch (Exception autoGenEx) {\n" +
+                    "                System.out.println(\"atlassian-agent: Auto license generation failed: \" + autoGenEx.getMessage());\n" +
+                    "            }\n" +
                     "            return licenseText;\n" +
                     "        } catch (Exception var10) {\n" +
                     "            throw new LicenseException(var10);\n" +
