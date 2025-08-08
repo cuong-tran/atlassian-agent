@@ -1,10 +1,13 @@
 package io.zhile.crack.atlassian.agent;
-
 import javassist.*;
 
+import java.io.File;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author pengzhile
@@ -14,6 +17,9 @@ import java.security.ProtectionDomain;
 public class KeyTransformer implements ClassFileTransformer {
     private static final String CN_KEY_SPEC = "java/security/spec/EncodedKeySpec";
 
+    private static final String LICENSE_DECODER_PATH = "com/atlassian/extras/decoder/v2/Version2LicenseDecoder";
+    private static final String LICENSE_DECODER_CLASS = "com.atlassian.extras.decoder.v2.Version2LicenseDecoder";
+
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
         if (className == null) {
@@ -22,6 +28,8 @@ public class KeyTransformer implements ClassFileTransformer {
 
         if (className.equals(CN_KEY_SPEC)) {
             return handleKeySpec();
+        } else if (className.equals(LICENSE_DECODER_PATH)) {
+            return handleLicenseDecoder();
         }
 
         return classfileBuffer;
@@ -37,7 +45,7 @@ public class KeyTransformer implements ClassFileTransformer {
             try {
                 Class.forName("java.util.Base64");
                 cp.importPackage("java.util.Base64");
-                b64f = "Base64.getDecoder().decode";
+                b64f = "java.util.Base64.getDecoder().decode";
             } catch (ClassNotFoundException e) {
                 try {
                     Class.forName("javax.xml.bind.DatatypeConverter");
@@ -58,4 +66,82 @@ public class KeyTransformer implements ClassFileTransformer {
             throw new IllegalClassFormatException(e.getMessage());
         }
     }
+
+
+    /**
+     * 移除用于验证哈希的方法: <code>com.atlassian.extras.decoder.v2.Version2LicenseDecoder#verifyLicenseHash</code>
+     *
+     * @return 修改过的类的字节码
+     * @throws IllegalClassFormatException 当某些地方出问题了就会抛出这个异常
+     */
+    private byte[] handleLicenseDecoder() throws IllegalClassFormatException {
+        try {
+            // 我不知道怎么从 com.atlassian.bitbucket.internal.launcher.BitbucketServerLauncher 读取这个路径，所以我直接 HARD CODE
+            // Forgive me pls...
+
+            Map<String, String> osEnv = System.getenv();
+            String atlassianDir = osEnv.get("ATLASSIAN_DIR");
+            System.out.println("the ATLASSIAN_DIR is：" + atlassianDir);
+            File libs = new File(atlassianDir);
+            ClassPool cp = ClassPool.getDefault();
+
+            Arrays.stream(Objects.requireNonNull(libs.listFiles())).map(File::getAbsolutePath).forEach((it) -> {
+                try {
+                    cp.insertClassPath(it);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+
+            cp.importPackage("com.atlassian.extras.common.LicenseException");
+            cp.importPackage("com.atlassian.extras.common.org.springframework.util.DefaultPropertiesPersister");
+            cp.importPackage("com.atlassian.extras.decoder.api.AbstractLicenseDecoder");
+            cp.importPackage("com.atlassian.extras.decoder.api.LicenseVerificationException");
+            cp.importPackage("com.atlassian.extras.keymanager.KeyManager");
+            cp.importPackage("com.atlassian.extras.keymanager.SortedProperties");
+            cp.importPackage("java.io.ByteArrayInputStream");
+            cp.importPackage("java.io.ByteArrayOutputStream");
+            cp.importPackage("java.io.DataInputStream");
+            cp.importPackage("java.io.DataOutputStream");
+            cp.importPackage("java.io.IOException");
+            cp.importPackage("java.io.InputStream");
+            cp.importPackage("java.io.InputStreamReader");
+            cp.importPackage("java.io.OutputStream");
+            cp.importPackage("java.io.Reader");
+            cp.importPackage("java.io.StringWriter");
+            cp.importPackage("java.io.Writer");
+            cp.importPackage("java.nio.charset.Charset");
+            cp.importPackage("java.nio.charset.StandardCharsets");
+            cp.importPackage("java.text.SimpleDateFormat");
+            cp.importPackage("java.util.Date");
+            cp.importPackage("java.util.Map");
+            cp.importPackage("java.util.Properties");
+            cp.importPackage("java.util.zip.Inflater");
+            cp.importPackage("java.util.zip.InflaterInputStream");
+            cp.importPackage("org.apache.commons.codec.binary.Base64");
+
+            CtClass target = cp.getCtClass(LICENSE_DECODER_CLASS);
+            CtMethod verifyLicenseHash = target.getDeclaredMethod("verifyLicenseHash");
+            verifyLicenseHash.setBody("{System.out.println(\"atlassian-agent: skip license hash check\");}");
+            CtMethod checkAndGetLicenseText = target.getDeclaredMethod("checkAndGetLicenseText");
+
+            checkAndGetLicenseText.setBody("        try {\n" +
+                    "            byte[] decodedBytes = org.apache.commons.codec.binary.Base64.decodeBase64($1.getBytes(StandardCharsets.UTF_8));\n" +
+                    "            ByteArrayInputStream in = new ByteArrayInputStream(decodedBytes);\n" +
+                    "            DataInputStream dIn = new DataInputStream(in);\n" +
+                    "            int textLength = dIn.readInt();\n" +
+                    "            byte[] licenseText = new byte[textLength];\n" +
+                    "            dIn.read(licenseText);\n" +
+                    "            System.out.println(\"atlassian-agent: skip verify the license.\");\n" +
+                    "            return licenseText;\n" +
+                    "        } catch (Exception var10) {\n" +
+                    "            throw new LicenseException(var10);\n" +
+                    "        }");
+            return target.toBytecode();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalClassFormatException(e.getMessage());
+        }
+    }
+
 }
