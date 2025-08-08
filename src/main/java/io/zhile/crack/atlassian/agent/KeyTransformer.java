@@ -11,7 +11,7 @@ import java.util.Objects;
 
 /**
  * @author pengzhile
- * @link https://zhile.io
+ * @link <a href="https://zhile.io">zhile.io</a>
  * @version 1.0
  */
 public class KeyTransformer implements ClassFileTransformer {
@@ -27,8 +27,10 @@ public class KeyTransformer implements ClassFileTransformer {
         }
 
         if (className.equals(CN_KEY_SPEC)) {
+            System.out.println("============================== Transforming KeySpec class ==============================");
             return handleKeySpec();
         } else if (className.equals(LICENSE_DECODER_PATH)) {
+            System.out.println("============================== Transforming LicenseDecoder class ==============================");
             return handleLicenseDecoder();
         }
 
@@ -36,6 +38,7 @@ public class KeyTransformer implements ClassFileTransformer {
     }
 
     private byte[] handleKeySpec() throws IllegalClassFormatException {
+        System.out.println("============================== Starting handleKeySpec ==============================");
         try {
             String b64f;
             ClassPool cp = ClassPool.getDefault();
@@ -60,9 +63,12 @@ public class KeyTransformer implements ClassFileTransformer {
             cc.addField(CtField.make("private static final byte[] __h_nk=" + b64f + "(\"MIIBuDCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaFpEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6OuqC+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6ASQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoDgYUAAoGBAO0DidNibJHhtgxAnM9NszURYU25CVLAlwFdOWhiUkjrjOY459ObRZDVd35hQmN/cCLkDox7y2InJE6PDWfbx9BsgPmPvH75yKgPs3B8pClQVkgIpJp08R59hoZabYuvm7mxCyDGTl2lbrOi0a3j4vM5OoCWKQjIEZ28OpjTyCr3\");", cc));
             CtConstructor cm = cc.getConstructor("([B)V");
             cm.insertBefore("if(Arrays.equals($1,__h_ok)){$1=__h_nk;System.out.println(\"============================== agent working ==============================\");}");
+            System.out.println("============================== KeySpec transformation completed ==============================");
 
             return cc.toBytecode();
         } catch (Exception e) {
+            System.err.println("============================== Error in handleKeySpec ==============================");
+            e.printStackTrace();
             throw new IllegalClassFormatException(e.getMessage());
         }
     }
@@ -76,12 +82,9 @@ public class KeyTransformer implements ClassFileTransformer {
      */
     private byte[] handleLicenseDecoder() throws IllegalClassFormatException {
         try {
-            // 我不知道怎么从 com.atlassian.bitbucket.internal.launcher.BitbucketServerLauncher 读取这个路径，所以我直接 HARD CODE
-            // Forgive me pls...
-
             Map<String, String> osEnv = System.getenv();
             String atlassianDir = osEnv.get("ATLASSIAN_DIR");
-            System.out.println("the ATLASSIAN_DIR is：" + atlassianDir);
+            System.out.println("============ agent: the ATLASSIAN_DIR is: " + atlassianDir + " ============");
             File libs = new File(atlassianDir);
             ClassPool cp = ClassPool.getDefault();
 
@@ -122,9 +125,9 @@ public class KeyTransformer implements ClassFileTransformer {
 
             CtClass target = cp.getCtClass(LICENSE_DECODER_CLASS);
             CtMethod verifyLicenseHash = target.getDeclaredMethod("verifyLicenseHash");
-            verifyLicenseHash.setBody("{System.out.println(\"atlassian-agent: skip license hash check\");}");
-            CtMethod checkAndGetLicenseText = target.getDeclaredMethod("checkAndGetLicenseText");
+            verifyLicenseHash.setBody("{System.out.println(\"=============== agent: skip license hash check ===============\");}");
 
+            CtMethod checkAndGetLicenseText = target.getDeclaredMethod("checkAndGetLicenseText");
             checkAndGetLicenseText.setBody("        try {\n" +
                     "            byte[] decodedBytes = org.apache.commons.codec.binary.Base64.decodeBase64($1.getBytes(StandardCharsets.UTF_8));\n" +
                     "            ByteArrayInputStream in = new ByteArrayInputStream(decodedBytes);\n" +
@@ -132,13 +135,14 @@ public class KeyTransformer implements ClassFileTransformer {
                     "            int textLength = dIn.readInt();\n" +
                     "            byte[] licenseText = new byte[textLength];\n" +
                     "            dIn.read(licenseText);\n" +
-                    "            System.out.println(\"atlassian-agent: skip verify the license.\");\n" +
+                    "            System.out.println(\"=============== agent working: skip verify the license. ===============\");\n" +
                     "            return licenseText;\n" +
                     "        } catch (Exception var10) {\n" +
                     "            throw new LicenseException(var10);\n" +
                     "        }");
             return target.toBytecode();
         } catch (Exception e) {
+            System.err.println("============================== Error in handleLicenseDecoder ==============================");
             e.printStackTrace();
             throw new IllegalClassFormatException(e.getMessage());
         }

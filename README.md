@@ -45,22 +45,22 @@
 
 ### 重要 Important!!
 
-需要在启动脚本中加上相应产品的lib库路径 作为系统变量  
+需要在启动脚本中加上相应产品的lib库路径 作为系统变量
 示例说明  注意不同产品lib库路径不同，仔细对比
 
 * confluence
 
    confluence_home (安装路径)/bin/start-confluence.sh 第一行添加
 
-   ```export ATLASSIAN_DIR="/opt/atlassian/confluence/confluence/WEB-INF/lib"```  
+   ```export ATLASSIAN_DIR="/opt/atlassian/confluence/confluence/WEB-INF/lib"```
 
 
-* bitbucket 
+* bitbucket
 
-  bitbucket_home (安装路径)/bin/start-bitbucket.sh 第一行添加 
+  bitbucket_home (安装路径)/bin/start-bitbucket.sh 第一行添加
 
    ```export ATLASSIAN_DIR="/opt/atlassian/bitbucket/app/WEB-INF/lib"```
- 
+
 ### 配置Agent
 1. 将`atlassian-agent.jar`放在一个你不会随便删除的位置（你服务器上的所有Atlassian服务可共享同一个`atlassian-agent.jar`）。
 2. 设置环境变量`JAVA_OPTS`（这其实是Java的环境变量，用来指定其启动java程序时附带的参数），把`-javaagent`参数附带上。具体可以这么做：
@@ -116,14 +116,14 @@ ENV JAVA_OPTS="-javaagent:${AGENT_PATH}/${AGENT_FILENAME} ${JAVA_OPTS}"
 version: "3"
 
 services:
-  confluence:
+  bitbucket:
     image: caelumlux/bitbucket:8.11.2
     container_name: bitbucket
     ports:
       - "7990:7990"
       - "7999:7999"
     volumes:
-      - "/var/atlassian/application-data/bitbucket:/var/atlassian/application-data/bitbucket "
+      - "/var/atlassian/application-data/bitbucket:/var/atlassian/application-data/bitbucket"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -165,8 +165,7 @@ services:
             - "host.docker.internal:host-gateway"
         environment:
             - TZ="Asia/Shanghai"
-        network_mode:
-          bridge
+        network_mode: bridge
 ```
 
 ### 热心网友教程（感谢原作者，侵删！）
