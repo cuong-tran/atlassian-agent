@@ -1,3 +1,8 @@
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by FernFlower decompiler)
+//
+
 package io.zhile.crack.atlassian.agent;
 
 import javassist.ClassPool;
@@ -23,6 +28,7 @@ import java.util.Objects;
  * @version 1.0
  */
 public class KeyTransformer implements ClassFileTransformer {
+    private static final String CN_KEY_MANAGER = "com/atlassian/extras/keymanager/KeyManager";
     private static final String CN_KEY_SPEC = "java/security/spec/EncodedKeySpec";
 
     private static final String LICENSE_DECODER_PATH = "com/atlassian/extras/decoder/v2/Version2LicenseDecoder";
@@ -32,19 +38,58 @@ public class KeyTransformer implements ClassFileTransformer {
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
         if (className == null) {
             return classfileBuffer;
-        }
-
-        if (className.equals(CN_KEY_SPEC)) {
+        } else if (className.equals(CN_KEY_MANAGER)) {
+            System.out.println("============================== Transforming KeyManager class ==============================");
+            return this.handleKeyManager();
+        } else if (className.equals(CN_KEY_SPEC)) {
             // If it falls here, license will work but there's the warning: `The product license you're using is not legitimate.`
             System.out.println("============================== Transforming KeySpec class ==============================");
             return handleKeySpec();
         } else if (className.equals(LICENSE_DECODER_PATH)) {
-            // Atlassian will try this (LICENSE_DECODER_PATH) first, if failed then trying CN_KEY_SPEC.
+            // Atlassian will try this (LICENSE_DECODER_PATH) first, if failed then trying CN_KEY_MANAGER. If failed again then trying CN_KEY_SPEC.
             System.out.println("============================== Transforming LicenseDecoder class ==============================");
             return handleLicenseDecoder();
+        } else {
+            return classfileBuffer;
         }
+    }
 
-        return classfileBuffer;
+    private byte[] handleKeyManager() throws IllegalClassFormatException {
+        try {
+            System.out.println("============================== Starting handleKeyManager ==============================");
+            ClassPool cp = ClassPool.getDefault();
+            CtClass cc = cp.get(CN_KEY_MANAGER.replace('/', '.'));
+            CtMethod resetMethod = cc.getDeclaredMethod("reset");
+            String newMethodBody = "{\n    this.privateKeys.clear();\n" +
+                    "    this.publicKeys.clear();\n" +
+                    "    java.util.List keys = new java.util.ArrayList();\n\n" +
+                    "    for(java.util.Iterator iter = this.env.entrySet().iterator(); iter.hasNext();) {\n" +
+                    "        java.util.Map.Entry envVar = (java.util.Map.Entry) iter.next();\n" +
+                    "        String envVarKey = (String)envVar.getKey();\n" +
+                    "        if (envVarKey.startsWith(\"ATLAS_LICENSE_PRIVATE_KEY_\")) {\n" +
+                    "            keys.add(new com.atlassian.extras.keymanager.Key((String)envVar.getValue(), extractVersion(envVarKey), com.atlassian.extras.keymanager.Key.Type.PRIVATE));\n" +
+                    "        }\n\n" +
+                    "        if (envVarKey.startsWith(\"ATLAS_LICENSE_PUBLIC_KEY_\")) {\n" +
+                    "            keys.add(new com.atlassian.extras.keymanager.Key((String)envVar.getValue(), extractVersion(envVarKey), com.atlassian.extras.keymanager.Key.Type.PUBLIC));\n" +
+                    "        }\n" +
+                    "    }\n\n" +
+                    "    for(java.util.Iterator it = keys.iterator(); it.hasNext();) {\n" +
+                    "        com.atlassian.extras.keymanager.Key key = (com.atlassian.extras.keymanager.Key)it.next();\n" +
+                    "        this.loadKey(key);\n" +
+                    "    }\n\n" +
+                    "    // 使用替换后的公钥\n" +
+                    "    System.out.println(\"============================== agent working: replacing public keys ==============================\");\n" +
+                    "    this.loadKey(new com.atlassian.extras.keymanager.Key(\"MIIBuDCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaFpEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6OuqC+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6ASQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoDgYUAAoGBAO0DidNibJHhtgxAnM9NszURYU25CVLAlwFdOWhiUkjrjOY459ObRZDVd35hQmN/cCLkDox7y2InJE6PDWfbx9BsgPmPvH75yKgPs3B8pClQVkgIpJp08R59hoZabYuvm7mxCyDGTl2lbrOi0a3j4vM5OoCWKQjIEZ28OpjTyCr3\", \"LICENSE_STRING_KEY_V2\", com.atlassian.extras.keymanager.Key.Type.PUBLIC));\n" +
+                    "    this.loadKey(new com.atlassian.extras.keymanager.Key(\"MIIBtzCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaFpEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6OuqC+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6ASQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoDgYQAAoGALZHuJwQzgGnYm/X9BkMcewYQnWjMIGWHd9Yom5Qw7cVIdiZkqpiSzSKurO/WAHHLN31obg7NgGkitWUysECRE3zuJVbKGhx9xjVMnP6z5SwI89vB7Gn7UWxoCvT0JZgcMyQobXeVBtM9J3EgzkdDx/+Dck7uz/l1y+HDNdRzW00=\", \"1600708331\", com.atlassian.extras.keymanager.Key.Type.PUBLIC));\n" +
+                    "}";
+            resetMethod.setBody(newMethodBody);
+            System.out.println("============================== KeyManager transformation completed ==============================");
+            return cc.toBytecode();
+        } catch (Exception e) {
+            System.err.println("============================== Error in handleKeyManager ==============================");
+            e.printStackTrace();
+            throw new IllegalClassFormatException(e.getMessage());
+        }
     }
 
     private byte[] handleKeySpec() throws IllegalClassFormatException {
@@ -126,19 +171,6 @@ public class KeyTransformer implements ClassFileTransformer {
             CtMethod verifyLicenseHash = target.getDeclaredMethod("verifyLicenseHash");
             verifyLicenseHash.setBody("{System.out.println(\"=============== agent: skip license hash check ===============\");}");
 
-            CtMethod checkAndGetLicenseText = target.getDeclaredMethod("checkAndGetLicenseText");
-            checkAndGetLicenseText.setBody("        try {\n" +
-                    "            byte[] decodedBytes = org.apache.commons.codec.binary.Base64.decodeBase64($1.getBytes(StandardCharsets.UTF_8));\n" +
-                    "            ByteArrayInputStream in = new ByteArrayInputStream(decodedBytes);\n" +
-                    "            DataInputStream dIn = new DataInputStream(in);\n" +
-                    "            int textLength = dIn.readInt();\n" +
-                    "            byte[] licenseText = new byte[textLength];\n" +
-                    "            dIn.read(licenseText);\n" +
-                    "            System.out.println(\"=============== agent working: skip verify the license. ===============\");\n" +
-                    "            return licenseText;\n" +
-                    "        } catch (Exception var10) {\n" +
-                    "            throw new LicenseException(var10);\n" +
-                    "        }");
             return target.toBytecode();
         } catch (Exception e) {
             System.err.println("============================== Error in handleLicenseDecoder ==============================");
