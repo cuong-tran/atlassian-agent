@@ -113,17 +113,17 @@ public class AutoLicenseGenerator {
                 return new Confluence(contactName, contactEmail, serverId, organization, dataCenter);
                 
             case BAMBOO:
-                return new Bamboo(contactName, contactEmail, serverId, organization);
-                
+                return new Bamboo(contactName, contactEmail, serverId, organization, dataCenter);
+
             case BITBUCKET:
                 return new Bitbucket(contactName, contactEmail, serverId, organization, dataCenter);
                 
             case FISHEYE:
-                return new FishEye(contactName, contactEmail, serverId, organization);
-                
+                return new FishEye(contactName, contactEmail, serverId, organization, dataCenter);
+
             case CRUCIBLE:
-                return new Crucible(contactName, contactEmail, serverId, organization);
-                
+                return new Crucible(contactName, contactEmail, serverId, organization, dataCenter);
+
             case CROWD:
                 return new Crowd(contactName, contactEmail, serverId, organization, dataCenter);
                 
