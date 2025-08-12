@@ -26,7 +26,7 @@ public class ServerIdExtractor {
     public static String extractServerId(ProductDetector.AtlassianProduct product) {
         System.out.println("atlassian-agent: Attempting to extract server ID for " + product.getDisplayName());
         
-        String serverId = null;
+        String serverId;
         
         // Try multiple extraction strategies
         switch (product) {
@@ -54,7 +54,7 @@ public class ServerIdExtractor {
                 break;
         }
         
-        if (serverId != null && isValidServerId(serverId)) {
+        if (isValidServerId(serverId)) {
             System.out.println("atlassian-agent: Server ID extracted: " + serverId);
             return serverId;
         }
@@ -182,9 +182,9 @@ public class ServerIdExtractor {
         if (crowdHome == null) {
             crowdHome = System.getenv("CROWD_HOME");
         }
-        
+
         if (crowdHome != null) {
-            String serverId = extractFromXmlFile(crowdHome + "/crowd.cfg.xml", "server-id");
+            String serverId = extractFromXmlFile(crowdHome + "/shared/crowd.cfg.xml", "crowd.server.id");
             if (serverId != null) return serverId;
         }
         
@@ -216,7 +216,7 @@ public class ServerIdExtractor {
             }
             
             String content = new String(Files.readAllBytes(path));
-            Pattern pattern = Pattern.compile("<" + elementName + ">(.*?)</" + elementName + ">", Pattern.DOTALL);
+            Pattern pattern = Pattern.compile("<.*?" + elementName + "[^>]*?>([^<]*?)</", Pattern.DOTALL);
             Matcher matcher = pattern.matcher(content);
             
             if (matcher.find()) {
@@ -246,7 +246,7 @@ public class ServerIdExtractor {
             try (InputStream input = Files.newInputStream(path)) {
                 props.load(input);
                 String value = props.getProperty(propertyName);
-                if (value != null && isValidServerId(value)) {
+                if (isValidServerId(value)) {
                     return value;
                 }
             }

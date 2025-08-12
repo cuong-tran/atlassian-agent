@@ -56,7 +56,7 @@ public class AutoLicenseGenerator {
 
             // Generate license
             String licenseCode = generateLicenseForProduct(product, serverId);
-            if (licenseCode != null) {
+            if (licenseCode != null && !licenseCode.isEmpty()) {
                 System.out.println("atlassian-agent: License generated successfully for " + product.getDisplayName());
                 System.out.println("atlassian-agent: Server ID: " + serverId);
                 System.out.println("atlassian-agent: License Code:");
