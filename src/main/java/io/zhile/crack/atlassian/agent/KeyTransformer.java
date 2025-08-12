@@ -9,6 +9,9 @@ import javassist.CtMethod;
 import java.io.File;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
+import java.net.URI;
+import java.net.URL;
+import java.nio.file.Path;
 import java.security.ProtectionDomain;
 import java.util.Arrays;
 import java.util.Map;
@@ -32,9 +35,11 @@ public class KeyTransformer implements ClassFileTransformer {
         }
 
         if (className.equals(CN_KEY_SPEC)) {
+            // If it falls here, license will work but there's the warning: `The product license you're using is not legitimate.`
             System.out.println("============================== Transforming KeySpec class ==============================");
             return handleKeySpec();
         } else if (className.equals(LICENSE_DECODER_PATH)) {
+            // Atlassian will try this (LICENSE_DECODER_PATH) first, if failed then trying CN_KEY_SPEC.
             System.out.println("============================== Transforming LicenseDecoder class ==============================");
             return handleLicenseDecoder();
         }
@@ -89,6 +94,13 @@ public class KeyTransformer implements ClassFileTransformer {
         try {
             Map<String, String> osEnv = System.getenv();
             String atlassianDir = osEnv.get("ATLASSIAN_DIR");
+            if (atlassianDir == null || atlassianDir.isEmpty()) {
+                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+                URL path = classLoader.getResource("");
+                URI uri = Objects.requireNonNull(path).toURI();
+                File libsDir = new File(Path.of(uri).toFile().getParent(), "lib");
+                atlassianDir = libsDir.getAbsolutePath();
+            }
             System.out.println("============ agent: the ATLASSIAN_DIR is: " + atlassianDir + " ============");
             File libs = new File(atlassianDir);
             ClassPool cp = ClassPool.getDefault();
@@ -101,32 +113,14 @@ public class KeyTransformer implements ClassFileTransformer {
                 }
             });
 
-            cp.importPackage("com.atlassian.extras.common.LicenseException");
-            cp.importPackage("com.atlassian.extras.common.org.springframework.util.DefaultPropertiesPersister");
-            cp.importPackage("com.atlassian.extras.decoder.api.AbstractLicenseDecoder");
-            cp.importPackage("com.atlassian.extras.decoder.api.LicenseVerificationException");
-            cp.importPackage("com.atlassian.extras.keymanager.KeyManager");
-            cp.importPackage("com.atlassian.extras.keymanager.SortedProperties");
-            cp.importPackage("java.io.ByteArrayInputStream");
-            cp.importPackage("java.io.ByteArrayOutputStream");
-            cp.importPackage("java.io.DataInputStream");
-            cp.importPackage("java.io.DataOutputStream");
-            cp.importPackage("java.io.IOException");
-            cp.importPackage("java.io.InputStream");
-            cp.importPackage("java.io.InputStreamReader");
-            cp.importPackage("java.io.OutputStream");
-            cp.importPackage("java.io.Reader");
-            cp.importPackage("java.io.StringWriter");
-            cp.importPackage("java.io.Writer");
-            cp.importPackage("java.nio.charset.Charset");
-            cp.importPackage("java.nio.charset.StandardCharsets");
-            cp.importPackage("java.text.SimpleDateFormat");
-            cp.importPackage("java.util.Date");
-            cp.importPackage("java.util.Map");
-            cp.importPackage("java.util.Properties");
-            cp.importPackage("java.util.zip.Inflater");
-            cp.importPackage("java.util.zip.InflaterInputStream");
-            cp.importPackage("org.apache.commons.codec.binary.Base64");
+            cp.importPackage("com.atlassian.extras.common");
+            cp.importPackage("com.atlassian.extras.decoder.api");
+            cp.importPackage("com.atlassian.extras.keymanager");
+            cp.importPackage("java.io");
+            cp.importPackage("java.nio.charset");
+            cp.importPackage("java.text");
+            cp.importPackage("java.util");
+            cp.importPackage("org.apache.commons.codec.binary");
 
             CtClass target = cp.getCtClass(LICENSE_DECODER_CLASS);
             CtMethod verifyLicenseHash = target.getDeclaredMethod("verifyLicenseHash");
@@ -152,5 +146,4 @@ public class KeyTransformer implements ClassFileTransformer {
             throw new IllegalClassFormatException(e.getMessage());
         }
     }
-
 }

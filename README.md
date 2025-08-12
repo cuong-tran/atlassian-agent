@@ -61,6 +61,8 @@
 
    ```export ATLASSIAN_DIR="/opt/atlassian/bitbucket/app/WEB-INF/lib"```
 
+通过classpath的方式获取相对于项目的lib目录
+
 ### 配置Agent
 1. 将`atlassian-agent.jar`放在一个你不会随便删除的位置（你服务器上的所有Atlassian服务可共享同一个`atlassian-agent.jar`）。
 2. 设置环境变量`JAVA_OPTS`（这其实是Java的环境变量，用来指定其启动java程序时附带的参数），把`-javaagent`参数附带上。具体可以这么做：
