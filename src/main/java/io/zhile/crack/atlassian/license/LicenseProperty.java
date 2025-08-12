@@ -89,6 +89,7 @@ abstract public class LicenseProperty {
     }
 
     public void setMaintenanceExpiryDate(Date maintenanceExpiryDate) {
+        data.remove("MaintenanceExpiryDate");
         data.put("MaintenanceExpiryDate", new SimpleDateFormat("yyyy-MM-dd").format(maintenanceExpiryDate));
     }
 
@@ -109,6 +110,7 @@ abstract public class LicenseProperty {
     }
 
     public void setLicenseExpiryDate(Date licenseExpiryDate) {
+        data.remove("LicenseExpiryDate");
         data.put("LicenseExpiryDate", new SimpleDateFormat("yyyy-MM-dd").format(licenseExpiryDate));
     }
 
